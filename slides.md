@@ -159,8 +159,119 @@ flowchart LR
 ```
 
 ---
+transition: fade
 ---
 
-# To be continued...
+# Yjs
 
-<hello/>
+```ts
+import * as Y from 'yjs'
+
+const yDoc = new Y.Doc()
+const yMap = yDoc .getMap('map')
+yMap.set('foo', 'goo')
+
+const yAnotherDoc = new Y.Doc()
+// how to sync the data between docs
+```
+
+---
+transition: fade
+---
+
+## Provider
+
+```ts
+const createProvider = (yDoc) => {
+  const fn = (update: Uint8Array) => {/* do something */ }
+  return {
+    connect: () => {
+      // send the data to another place
+      yDoc.on('update', fn)
+      // receive the data from another place
+      // #1: remote server
+      ws.on('message', (data) => {
+        Y.applyUpdate(yDoc, data)
+      })
+      // #2: local indexeddb
+      idb.on('update', (data) => {
+        Y.applyUpdate(yDoc, data)
+      })
+      // #3: desktop api (if we have)
+      electron.listen('update', (data) => {
+        Y.applyUpdate(yDoc, data)
+      })
+    },
+    disconnect: () => {
+      // cleanup side effects
+    }
+  }
+}
+```
+
+---
+transition: slide-left
+---
+
+## Provider Usage
+
+```ts
+import * as Y from 'yjs'
+
+const yDoc = new Y.Doc()
+const yMap = yDoc .getMap('map')
+yMap.set('foo', 'goo')
+
+const yAnotherDoc = new Y.Doc()
+// sync the data between docs using provider
+const provider1 = createProvider(yDoc)
+const provider2 = createProvider(yAnotherDoc)
+
+provider1.connect()
+provider2.connect()
+```
+
+---
+transition: fade
+---
+
+# Yjs + React
+
+```tsx
+const Component = () => {
+  const currentWorkspace = useCurrentWorkspace()
+  useEffect(() => {
+    currentWorkspace.providers.forEach((provider) => {
+      provider.connect()
+    })
+    return () => {
+      currentWorkspace.providers.forEach((provider) => {
+        provider.disconnect()
+      })
+    }
+  }, [])
+  // ...
+}
+```
+
+---
+transition: fade
+---
+
+#  Workspace loading edge cases
+
+## Is a workspace empty?
+
+If it's empty, we need to create initial data like 'Welcome to AFFiNE' page. (Blocking UI)
+
+## What if user refresh the app?
+
+We need to load the data from indexeddb or remote server. But just for once. (Background)
+
+---
+---
+# Workspace Provider Types
+
+We differ the provider into two types: `backgorund/foreground` and `necessary/unnecessary`.
+
+![](/assets/providers.jpg)
