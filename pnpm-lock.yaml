@@ -10,6 +10,9 @@ dependencies:
   '@slidev/theme-seriph':
     specifier: '*'
     version: 0.21.3
+  vue:
+    specifier: ^3.2.47
+    version: 3.2.47
 
 packages:
 
