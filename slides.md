@@ -19,31 +19,48 @@ by Alex Yang
 transition: slide-left
 ---
 
-# Overall infrastructure
+## AFFiNE is the next-generation collaborative knowledge base
 
-<img src="/assets/infra.png" style="height: 90%">
+https://affine.pro/
 
-<!--
-You can have `style` tag in markdown to override the style for the current page.
-Learn more: https://sli.dev/guide/syntax#embedded-styles
--->
-
-<style>
-h1 {
-  background-color: rgb(84, 56, 255);
-  background-image: linear-gradient(45deg, #5438ff 10%, #7d91ff 20%);
-  background-size: 100%;
-  -webkit-background-clip: text;
-  -moz-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  -moz-text-fill-color: transparent;
-}
-</style>
+- (collaborative) OctoBase
+- (knowledge) BlockSuite
+- (base) AFFiNE
 
 ---
 transition: fade
 ---
+# Workspace Loading
 
+- How to manage so many workspaces?
+
+---
+---
+# Issue on old AFFiNE
+
+- Care about too many things
+
+https://github.com/toeverything/AFFiNE/blob/2dcccc772cf2f95369a8c40fe9287d0056ef7cca/packages/data-center/src/provider/base.ts#L22
+
+- Too much encapsulation
+
+https://github.com/toeverything/AFFiNE/blob/2dcccc772cf2f95369a8c40fe9287d0056ef7cca/packages/data-center/src/datacenter.ts#L167-L193
+
+---
+---
+# Only load first workspace in first render
+```mermaid
+graph LR
+subgraph Interactive unavailable
+A[Loading] --> B[Setup Environment]
+B --> C[Loading Initial Data]
+C --> D[Skeleton UI]
+end
+D --> E[Render UI]
+E --> F[Async fetching Data] --> E
+```
+---
+---
 
 # Workspace initialization
 
@@ -77,7 +94,7 @@ transition: fade
 # Workspace initialization
 
 ```tsx {all}
-const worksapceAtom = atom<Promise<(LocalWorksapce | AffineWorkspace)[]>>(
+const worksapcesAtom = atom<Promise<(LocalWorksapce | AffineWorkspace)[]>>(
   async (get) => {
     const jotaiWorkspaces = get(jotaiWorkspace)
     const worksapces = await Promise.all(jotaiWorkspaces.forEach(({ id, flavour }) => {
@@ -86,7 +103,7 @@ const worksapceAtom = atom<Promise<(LocalWorksapce | AffineWorkspace)[]>>(
     return worksapces.filter(Boolean)
 })
 function WorkspaceLayoutInner({ chilren }) {
-  const workspaces = useAtomValue(worksapceAtom)
+  const workspaces = useAtomValue(worksapcesAtom)
   const router = useRouter()
   useSyncRouterWithCurrentWorkspace(router)
   const Provider = WorkspacePlugins[currentWorkspace.flavour].Provider
@@ -264,7 +281,7 @@ transition: fade
 
 If it's empty, we need to create initial data like 'Welcome to AFFiNE' page. (Blocking UI)
 
-## What if user refresh the app?
+## What if a user refreshes the app?
 
 We need to load the data from indexeddb or remote server. But just for once. (Background)
 
@@ -275,3 +292,87 @@ We need to load the data from indexeddb or remote server. But just for once. (Ba
 We differ the provider into two types: `backgorund/foreground` and `necessary/unnecessary`.
 
 ![](/assets/providers.jpg)
+---
+---
+# Talking about the future
+
+- Plugin System
+- Separate Modules
+
+---
+---
+# Plugin
+
+## Theme?
+
+We use CSS variables. So it's easy to change the theme.
+
+## New Workspace?
+
+Workspace Plugin
+
+## New Block?
+
+BlockSuite things
+
+## New Feature on the Page?
+
+AdHoc UI Plugin
+
+---
+---
+# Plugin
+![](/assets/plugin.png)
+
+---
+---
+
+https://github.com/DimensionDev/Maskbook/blob/develop/packages/plugins/Example/src/index.ts
+https://github.com/DimensionDev/Maskbook/blob/develop/packages/plugin-infra/src/manager/store.ts
+
+---
+---
+# Module
+
+- UI
+- State
+- Test
+
+---
+---
+# Module
+
+```ts
+const init = createModule('user', context => {
+  const { fetch, requestUser } = context.store.get(
+    context.atoms.resourceContextAtom
+  );
+  const userIdAtom = primitiveAtom<string | null>(
+    requestUser?.id ?? null
+  );
+
+  const userAtom = effectAtom<FakeUser | null>(async get => {
+    const id = get(userIdAtom);
+    if (id === null) {
+      return null;
+    } else {
+      const user = (await fetch(`http://localhost:3000/${id}`).then(r =>
+        r.json()
+      )) as FakeUser;
+      resolved = true;
+      return user;
+    }
+  });
+
+  const changeUserAtom = dispatchAtom((get, set, id: string) => {
+    set(userIdAtom, id);
+  });
+
+  return [userIdAtom, userAtom, changeUserAtom];
+});
+```
+
+https://jotai.org/docs/integrations/molecules
+
+---
+---
